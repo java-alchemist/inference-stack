@@ -1,0 +1,16 @@
+# Ignore all local data and state directories
+tailscale_state/
+comfyui/models/
+comfyui/input/
+comfyui/output/
+
+# Ignore secret files
+*.env
+secrets.yaml
+.ts_authkey
+.comfyui_password
+
+# OS and IDE noise
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # --- Inference Engine: vLLM (ROCm) ---
+  vllm:
+    image: vllm/vllm-rocm:latest
+    container_name: inference-vllm
+    network_mode: "container:tailscale"
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    environment:
+      - SERVICE_NAME=vllm
+    entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
+    command: python3 -m vllm.entrypoints.openai.api_server --model facebook/opt-125m
+    volumes:
+      - /opt/data/home/turnstone-stack-secrets/secrets.yaml:/run/secrets/secrets.yaml:ro
+      - /opt/data/home/inference-stack/scripts:/scripts:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  # --- Visual Synthesis: ComfyUI (ROCm) ---
+  comfyui:
+    image: yanwk/comfyui-rocm:latest
+    container_name: inference-comfyui
+    network_mode: "container:tailscale"
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    environment:
+      - SERVICE_NAME=comfyui
+    entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
+    command: python3 main.py --listen 0.0.0.0
+    volumes:
+      - ./comfyui/models:/home/user/comfyui/models
+      - ./comfyui/input:/home/user/comfyui/input
+      - ./comfyui/output:/home/user/comfyui/output
+      - /opt/data/docs/assets:/home/user/comfyui/output_shared:rw
+      - /opt/data/home/turnstone-stack-secrets/secrets.yaml:/run/secrets/secrets.yaml:ro
+      - /opt/data/home/inference-stack/scripts:/scripts:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  # Tailscale sidecar for the inference stack identity
+  tailscale:
+    image: tailscale/tailscale:1.64.0
+    container_name: inference-tailscale
+    hostname: inference-stack
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - TS_STATE_DIR=/var/lib/tailscale
+    volumes:
+      - ./tailscale_state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+      - /opt/data/home/turnstone-stack-secrets/.ts_authkey:/run/secrets/ts_authkey:ro
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
