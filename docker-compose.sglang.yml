@@ -1,18 +1,17 @@
 version: '3.8'
 
 services:
-  vllm:
-    image: vllm/vllm-rocm:latest
-    container_name: inference-vllm
+  sglang:
+    image: lmsysorg/sglang-rocm:v0.5.14-rocm720-mi30x-20260707
+    container_name: inference-sglang
     network_mode: "container:tailscale"
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
     environment:
-      - SERVICE_NAME=vllm
+      - SERVICE_NAME=sglang
     entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
-    # Removed gpu-memory-utilization limit to allow full VRAM usage
-    command: python3 -m vllm.entrypoints.openai.api_server --model facebook/opt-125m
+    command: python3 -m sglang.launch_server --model-path facebook/opt-125m --host 0.0.0.0
     volumes:
       - /opt/data/home/turnstone-stack-secrets/secrets.yaml:/run/secrets/secrets.yaml:ro
       - /opt/data/home/inference-stack/scripts:/scripts:ro

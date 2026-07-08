@@ -1,15 +1,15 @@
-# Inference Stack Management (vLLM & ComfyUI)
-.PHONY: setup up-vllm down-vllm up-comfy down-comfy status
+# Inference Stack Management (SGLang & ComfyUI)
+.PHONY: setup up-sglang down-sglang up-comfy down-comfy status
 
 setup:
 	@echo "🚀 Setting up Inference Stack..."
 	bash ./setup.sh
 
-up-vllm:
-	docker compose -f docker-compose.vllm.yml up -d
+up-sglang:
+	docker compose -f docker-compose.sglang.yml up -d
 
-down-vllm:
-	docker compose -f docker-compose.vllm.yml down
+down-sglang:
+	docker compose -f docker-compose.sglang.yml down
 
 up-comfy:
 	docker compose -f docker-compose.comfy.yml up -d

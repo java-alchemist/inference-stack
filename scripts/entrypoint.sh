@@ -20,8 +20,8 @@ decrypt_secret() {
 
 echo "🔐 Decrypting secrets into memory..."
 
-# Provision vLLM secret if applicable
-if [ "$SERVICE_NAME" == "vllm" ]; then
+# Provision SGLang secret if applicable
+if [ "$SERVICE_NAME" == "sglang" ]; then
     export HF_TOKEN=$(decrypt_secret "HUGGING_FACE_HUB_TOKEN")
 fi
 
