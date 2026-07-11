@@ -11,6 +11,7 @@ services:
     environment:
       - SERVICE_NAME=comfyui
       - HSA_OVERRIDE_GFX_VERSION=12.0.0
+      - SOPS_AGE_KEY_FILE=/run/secrets/age_keys.txt
     entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
     command: python3 main.py --listen 0.0.0.0
     volumes:
@@ -20,6 +21,7 @@ services:
       - /opt/data/docs/assets:/home/user/comfyui/output_shared:rw
       - /opt/data/home/turnstone-stack-secrets/secrets.yaml:/run/secrets/secrets.yaml:ro
       - /opt/data/home/inference-stack/scripts:/scripts:ro
+      - /opt/data/home/.config/sops/age/keys.txt:/run/secrets/age_keys.txt:ro
     logging:
       driver: "json-file"
       options:
