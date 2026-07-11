@@ -85,10 +85,21 @@ TEMP_DECRYPTED=".tmp_decrypted.yaml"
 TEMP_FILES+=("$TEMP_DECRYPTED")
 
 echo "📦 Decrypting secrets..."
-if decrypt_sops > "$TEMP_DECRYPTED" 2>/dev/null; then
+# Capture stderr separately so we can show the real SOPS error on failure
+TEMP_ERR=".tmp_decrypt_err"
+TEMP_FILES+=("$TEMP_ERR")
+
+echo "📦 Decrypting secrets..."
+if decrypt_sops > "$TEMP_DECRYPTED" 2>"$TEMP_ERR"; then
     echo "✅ Decryption successful."
 else
-    echo "❌ Decryption failed. Check that your Age key matches the recipient in .sops.yaml" >&2
+    ERR_MSG=$(cat "$TEMP_ERR" 2>/dev/null)
+    if [ -n "$ERR_MSG" ]; then
+        echo "❌ Decryption failed:" >&2
+        echo "$ERR_MSG" >&2
+    else
+        echo "❌ Decryption failed. Check that your Age key matches the recipient in .sops.yaml" >&2
+    fi
     exit 1
 fi
 
