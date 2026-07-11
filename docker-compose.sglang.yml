@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   sglang:
     image: lmsysorg/sglang-rocm:v0.5.14-rocm720-mi30x-20260707
-    container_name: inference-sglang
-    network_mode: "container:tailscale"
+    container_name: turnstone-inference-sglang
+    network_mode: "container:turnstone-tailscale"
     depends_on: []
     devices:
       - /dev/kfd:/dev/kfd
