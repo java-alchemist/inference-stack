@@ -62,7 +62,9 @@ fi
 # --- 3. Decrypt secrets via Docker (mirrors turnstone-stack) ---
 CONFIG_DIR="$HOME/.config/sops"
 KEYS_FILE="$CONFIG_DIR/age/keys.txt"
+COMMON_SECRETS="common/secrets.yaml"
 ABS_STACK_DIR="$(cd "$STACK_DIR" && pwd)"
+ABS_PWD="$ABS_STACK_DIR"
 ABS_SECRETS_DIR="$(cd "$SECRETS_SIBLING" && pwd)"
 
 # Check for Age key
@@ -74,12 +76,12 @@ fi
 
 decrypt_sops() {
     docker run --rm \
-        -v "$ABS_STACK_DIR:/work" \
+        -v "$ABS_PWD:/work" \
         -v "$ABS_SECRETS_DIR:/secrets" \
         -v "$KEYS_FILE:/run/age/key:ro" \
         -e SOPS_AGE_KEY_FILE=/run/age/key \
         -w /work ghcr.io/getsops/sops:v3.9.4 \
-        --decrypt /secrets/common/secrets.yaml
+        --decrypt /secrets/$COMMON_SECRETS
 }
 
 TEMP_DECRYPTED=".tmp_decrypted.yaml"
