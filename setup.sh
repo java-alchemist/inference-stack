@@ -111,7 +111,7 @@ chmod 700 "$STACK_DIR/secrets"
 
 provision() {
     local var="$1"; local file="$2"
-    local val=$(grep "^${var}:" "$TEMP_DECRYPTED" | head -1 | cut -d' ' -f2- | tr -d '"\'')
+    local val=$(grep "^${var}:" "$TEMP_DECRYPTED" | head -1 | cut -d' ' -f2- | sed "s/[\"']//g")
     if [ -n "$val" ]; then
         printf '%s' "$val" > "$STACK_DIR/secrets/$file"
         chmod 600 "$STACK_DIR/secrets/$file"
