@@ -5,7 +5,6 @@ set -e
 STACK_DIR="/opt/data/home/inference-stack"
 SECRETS_DIR="/opt/data/home/turnstone-stack-secrets"
 DOCS_ASSETS="/opt/data/docs/assets"
-DOCS_ASSETS="/opt/data/docs/assets"
 
 echo "🚀 Starting Inference Stack Setup..."
 
@@ -34,6 +33,12 @@ echo "" >&2
 echo "placeholder_key" > "$STACK_DIR/secrets/ts_authkey"
 echo "placeholder_password" > "$STACK_DIR/secrets/comfyui_password"
 chmod 600 "$STACK_DIR/secrets/"*
+
+# Fail fast — placeholder secrets are not usable for production
+echo "" >&2
+echo "⚠️  PLACEHOLDER SECRETS created — Tailscale auth WILL FAIL without real credentials." >&2
+echo "   Copy real secrets from turnstone-stack-secrets or run 'make setup' in turnstone-stack first." >&2
+exit 1
 
 # 3. Bootstrap Models (Starter Set)
 echo "📦 Bootstrapping starter models..."

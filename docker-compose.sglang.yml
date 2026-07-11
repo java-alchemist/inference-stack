@@ -4,7 +4,10 @@ services:
   sglang:
     image: lmsysorg/sglang-rocm:v0.5.14-rocm720-mi30x-20260707
     container_name: inference-sglang
-    network_mode: "container:tailscale"
+    network_mode: "service:tailscale"
+    depends_on:
+      tailscale:
+        condition: service_started
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
@@ -13,11 +16,11 @@ services:
       - HSA_OVERRIDE_GFX_VERSION=12.0.0
       - SOPS_AGE_KEY_FILE=/run/secrets/age_keys.txt
     entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
-    command: python3 -m sglang.launch_server --model-path facebook/opt-125m --host 0.0.0.0
+    command: python3 -m sglang.launch_server --model-path ${SGLANG_MODEL_PATH:-facebook/opt-125m} --host 0.0.0.0
     volumes:
-      - /opt/data/home/turnstone-stack-secrets/secrets.yaml:/run/secrets/secrets.yaml:ro
-      - /opt/data/home/inference-stack/scripts:/scripts:ro
-      - /opt/data/home/.config/sops/age/keys.txt:/run/secrets/age_keys.txt:ro
+      - ${SECRETS_DIR:-../turnstone-stack-secrets}/secrets.yaml:/run/secrets/secrets.yaml:ro
+      - ./scripts:/scripts:ro
+      - ${AGE_KEYS_FILE:-${HOME}/.config/sops/age/keys.txt}:/run/secrets/age_keys.txt:ro
     logging:
       driver: "json-file"
       options:
@@ -26,9 +29,9 @@ services:
     restart: unless-stopped
 
   tailscale:
-    image: tailscale/tailscale:1.64.0
+    image: tailscale/tailscale:v1.78.0
     container_name: inference-tailscale
-    hostname: inference-stack
+    hostname: ${INFERENCE_HOSTNAME:-inference-stack}
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -38,7 +41,7 @@ services:
     volumes:
       - ./tailscale_state:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
-      - /opt/data/home/turnstone-stack-secrets/.ts_authkey:/run/secrets/ts_authkey:ro
+      - ${SECRETS_DIR:-../turnstone-stack-secrets}/.ts_authkey:/run/secrets/ts_authkey:ro
     healthcheck:
       test: ["CMD", "tailscale", "status"]
       interval: 10s
