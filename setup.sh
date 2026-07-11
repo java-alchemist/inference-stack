@@ -87,7 +87,6 @@ decrypt_sops() {
 TEMP_DECRYPTED=".tmp_decrypted.yaml"
 TEMP_FILES+=("$TEMP_DECRYPTED")
 
-echo "📦 Decrypting secrets..."
 # Capture stderr separately so we can show the real SOPS error on failure
 TEMP_ERR=".tmp_decrypt_err"
 TEMP_FILES+=("$TEMP_ERR")
@@ -112,7 +111,7 @@ chmod 700 "$STACK_DIR/secrets"
 
 provision() {
     local var="$1"; local file="$2"
-    local val=$(grep "^${var}:" "$TEMP_DECRYPTED" | head -1 | cut -d' ' -f2- | tr -d '"' "'"')
+    local val=$(grep "^${var}:" "$TEMP_DECRYPTED" | head -1 | cut -d' ' -f2- | tr -d '"\'')
     if [ -n "$val" ]; then
         printf '%s' "$val" > "$STACK_DIR/secrets/$file"
         chmod 600 "$STACK_DIR/secrets/$file"
