@@ -26,6 +26,11 @@ mkdir -p "$STACK_DIR/secrets"
 chmod 700 "$STACK_DIR/secrets"
 
 # Create placeholder secret files to prevent container crash on boot
+echo "" >&2
+echo "⚠️  WARNING: Creating PLACEHOLDER secrets — these are NOT real credentials." >&2
+echo "   The containers will start but Tailscale authentication will FAIL." >&2
+echo "   Run 'make setup' or provision real secrets from turnstone-stack-secrets first." >&2
+echo "" >&2
 echo "placeholder_key" > "$STACK_DIR/secrets/ts_authkey"
 echo "placeholder_password" > "$STACK_DIR/secrets/comfyui_password"
 chmod 600 "$STACK_DIR/secrets/"*
