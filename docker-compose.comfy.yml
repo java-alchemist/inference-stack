@@ -40,7 +40,7 @@ services:
       - NET_ADMIN
       - SYS_MODULE
     environment:
-      - TS_AUTHKEY_FILE=/run/s...ey
+      - TS_AUTHKEY_FILE=/run/secrets/ts_authkey
       - TS_STATE_DIR=/var/lib/tailscale
     volumes:
       - ./tailscale_state:/var/lib/tailscale

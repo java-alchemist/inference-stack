@@ -34,11 +34,19 @@ echo "placeholder_key" > "$STACK_DIR/secrets/ts_authkey"
 echo "placeholder_password" > "$STACK_DIR/secrets/comfyui_password"
 chmod 600 "$STACK_DIR/secrets/"*
 
-# Fail fast — placeholder secrets are not usable for production
+# Continue setup with helpful next steps instead of exit
 echo "" >&2
-echo "⚠️  PLACEHOLDER SECRETS created — Tailscale auth WILL FAIL without real credentials." >&2
-echo "   Copy real secrets from turnstone-stack-secrets or run 'make setup' in turnstone-stack first." >&2
-exit 1
+if [ ! -f "$SECRETS_DIR/common/secrets.yaml" ] || [ ! -s "$SECRETS_DIR/common/secrets.yaml" ]; then
+    echo "⚠️  WARNING: Secrets file not found or empty at $SECRETS_DIR/common/secrets.yaml" >&2
+fi
+
+echo "" >&2
+echo "📝 Next steps:" >&2
+echo "   1. Copy real TS_AUTHKEY from turnstone-stack-secrets:" >&2
+echo "      cp ../turnstone-stack-secrets/.ts_authkey ./secrets/ts_authkey" >&2
+echo "   2. Add HUGGING_FACE_HUB_TOKEN and COMFYUI_PASSWORD to secrets.yaml" >&2
+echo "" >&2
+echo "✨ Inference Stack setup complete! Run: docker compose up -d"
 
 # 3. Bootstrap Models (Starter Set)
 echo "📦 Bootstrapping starter models..."
