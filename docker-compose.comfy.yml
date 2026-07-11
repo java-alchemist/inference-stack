@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
 
   tailscale:
-    image: tailscale/tailscale:v1.78.0
+    image: tailscale/tailscale:latest
     container_name: inference-tailscale
     hostname: ${INFERENCE_HOSTNAME:-inference-stack}
     cap_add:
