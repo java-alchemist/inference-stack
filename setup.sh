@@ -5,8 +5,13 @@ set -e
 # Resolve paths relative to this script's directory (works regardless of where it's cloned)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STACK_DIR="$SCRIPT_DIR"
-SECRETS_DIR="$(cd "$SCRIPT_DIR/../turnstone-stack-secrets" 2>/dev/null && pwd || echo "$SCRIPT_DIR/../turnstone-stack-secrets")"
-DOCS_ASSETS="${DOCS_ASSETS:-$SCRIPT_DIR/assets}"
+SECRETS_SIBLING="$SCRIPT_DIR/../turnstone-stack-secrets"
+
+TEMP_FILES=()  # Track temp files for cleanup
+cleanup() {
+    rm -f "${TEMP_FILES[@]}" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
 
 echo "🚀 Starting Inference Stack Setup..."
 
@@ -42,50 +47,73 @@ elif [ "$rocm_ok" = true ]; then
     echo "✅ ROCm drivers detected (/dev/kfd)."
 fi
 
-# 2. Provision Secrets (Zero-Visibility Pattern)
-echo "🔐 Provisioning secrets..."
-mkdir -p "$STACK_DIR/secrets"
+# --- 2. Clone/Update Secrets Repo ---
+if [ ! -d "$SECRETS_SIBLING/.git" ]; then
+    echo "📂 Cloning secrets repository..."
+    git clone https://github.com/java-alchemist/turnstone-stack-secrets.git "$SECRETS_SIBLING" || {
+        echo "❌ Failed to clone secrets repo" >&2; exit 1
+    }
+else
+    echo "ℹ️  Secrets repo already present, pulling latest..."
+    cd "$SECRETS_SIBLING" && git pull --quiet 2>&1 || true
+    cd "$STACK_DIR" > /dev/null
+fi
 
-# In a real scenario, we would use: sops -d $SECRETS_DIR/secrets.yaml > $STACK_DIR/secrets/.env
-# For now, we ensure the directory exists and is restricted
+# --- 3. Decrypt secrets via Docker (mirrors turnstone-stack) ---
+KEYS_FILE="$HOME/.config/sops/age/keys.txt"
+ABS_STACK_DIR="$(cd "$STACK_DIR" && pwd)"
+ABS_SECRETS_DIR="$(cd "$SECRETS_SIBLING" && pwd)"
+
+# Check for Age key
+if [ ! -f "$KEYS_FILE" ]; then
+    echo "❌ No SOPS Age key found at $KEYS_FILE" >&2
+    echo "   Run setup in turnstone-stack first to generate one." >&2
+    exit 1
+fi
+
+decrypt_sops() {
+    docker run --rm \
+        -v "$ABS_STACK_DIR:/work" \
+        -v "$ABS_SECRETS_DIR:/secrets" \
+        -v "$KEYS_FILE:/run/age/key:ro" \
+        -e SOPS_AGE_KEY_FILE=/run/age/key \
+        -w /work ghcr.io/getsops/sops:v3.9.4 \
+        --decrypt /secrets/common/secrets.yaml
+}
+
+TEMP_DECRYPTED=".tmp_decrypted.yaml"
+TEMP_FILES+=("$TEMP_DECRYPTED")
+
+echo "📦 Decrypting secrets..."
+if decrypt_sops > "$TEMP_DECRYPTED" 2>/dev/null; then
+    echo "✅ Decryption successful."
+else
+    echo "❌ Decryption failed. Check that your Age key matches the recipient in .sops.yaml" >&2
+    exit 1
+fi
+
+# Parse decrypted YAML into individual secret files
+mkdir -p "$STACK_DIR/secrets"
 chmod 700 "$STACK_DIR/secrets"
 
-# Create placeholder secret files to prevent container crash on boot
-echo "" >&2
-echo "⚠️  WARNING: Creating PLACEHOLDER secrets — these are NOT real credentials." >&2
-echo "   The containers will start but Tailscale authentication will FAIL." >&2
-echo "   Run 'make setup' or provision real secrets from turnstone-stack-secrets first." >&2
-echo "" >&2
-echo "placeholder_key" > "$STACK_DIR/secrets/ts_authkey"
-echo "placeholder_password" > "$STACK_DIR/secrets/comfyui_password"
-chmod 600 "$STACK_DIR/secrets/"*
+provision() {
+    local var="$1"; local file="$2"
+    local val=$(grep "^${var}:" "$TEMP_DECRYPTED" | head -1 | cut -d' ' -f2- | tr -d '"' "'"')
+    if [ -n "$val" ]; then
+        printf '%s' "$val" > "$STACK_DIR/secrets/$file"
+        chmod 600 "$STACK_DIR/secrets/$file"
+        echo "  ✅ $var → secrets/$file"
+    fi
+}
 
-# Continue setup with helpful next steps instead of exit
-echo "" >&2
-if [ ! -f "$SECRETS_DIR/common/secrets.yaml" ] || [ ! -s "$SECRETS_DIR/common/secrets.yaml" ]; then
-    echo "⚠️  WARNING: Secrets file not found or empty at $SECRETS_DIR/common/secrets.yaml" >&2
-fi
+provision "TS_AUTHKEY" ".ts_authkey"
+provision "COMFYUI_PASSWORD" ".comfyui_password"
+provision "HERMES_API_KEY" ".hermes_key"
 
-echo "" >&2
-echo "📝 Next steps:" >&2
-echo "   1. Copy real TS_AUTHKEY from turnstone-stack-secrets:" >&2
-echo "      cp ../turnstone-stack-secrets/.ts_authkey ./secrets/ts_authkey" >&2
-echo "   2. Add HUGGING_FACE_HUB_TOKEN and COMFYUI_PASSWORD to secrets.yaml" >&2
-echo "" >&2
-echo "✨ Inference Stack setup complete! Run: docker compose up -d"
-
-# 3. Bootstrap Models (Starter Set)
-echo "📦 Bootstrapping starter models..."
+# 4. Bootstrap Models (Starter Set)
+echo "📦 Preparing model directories..."
 mkdir -p "$STACK_DIR/comfyui/models/checkpoints"
 
-# Example: Download a small model or create a placeholder to verify paths
-if [ ! -f "$STACK_DIR/comfyui/models/checkpoints/starter.safetensors" ]; then
-    echo "Downloading starter checkpoint (simulated)..."
-    touch "$STACK_DIR/comfyui/models/checkpoints/starter.safetensors"
-fi
-
-# 4. Ensure Shared Assets Directory exists
-mkdir -p "$DOCS_ASSETS"
-
-echo "✨ Inference Stack setup complete!"
-echo "You can now run: docker compose up -d"
+echo "" >&2
+echo "✨ Inference Stack setup complete!" >&2
+echo "   Run 'make up-sglang' or 'make up-comfy' to start services."
