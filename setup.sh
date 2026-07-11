@@ -60,7 +60,8 @@ else
 fi
 
 # --- 3. Decrypt secrets via Docker (mirrors turnstone-stack) ---
-KEYS_FILE="$HOME/.config/sops/age/keys.txt"
+CONFIG_DIR="$HOME/.config/sops"
+KEYS_FILE="$CONFIG_DIR/age/keys.txt"
 ABS_STACK_DIR="$(cd "$STACK_DIR" && pwd)"
 ABS_SECRETS_DIR="$(cd "$SECRETS_SIBLING" && pwd)"
 
