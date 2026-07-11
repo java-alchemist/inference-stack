@@ -2,9 +2,11 @@
 set -e
 
 # --- Configuration ---
-STACK_DIR="/opt/data/home/inference-stack"
-SECRETS_DIR="/opt/data/home/turnstone-stack-secrets"
-DOCS_ASSETS="/opt/data/docs/assets"
+# Resolve paths relative to this script's directory (works regardless of where it's cloned)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STACK_DIR="$SCRIPT_DIR"
+SECRETS_DIR="$(cd "$SCRIPT_DIR/../turnstone-stack-secrets" 2>/dev/null && pwd || echo "$SCRIPT_DIR/../turnstone-stack-secrets")"
+DOCS_ASSETS="${DOCS_ASSETS:-$SCRIPT_DIR/assets}"
 
 echo "🚀 Starting Inference Stack Setup..."
 
