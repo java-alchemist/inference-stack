@@ -6,6 +6,15 @@ set -e
 
 SECRET_FILE="/run/secrets/secrets.yaml"
 
+# --- Tool availability checks (fail fast) ---
+for tool in sops jq; do
+    if ! command -v "$tool" &>/dev/null; then
+        echo "❌ ERROR: Required tool '$tool' not found in container image." >&2
+        echo "   Install it or use an image that includes it." >&2
+        exit 1
+    fi
+done
+
 if [ ! -f "$SECRET_FILE" ]; then
     echo "❌ ERROR: Encrypted secrets file not found at $SECRET_FILE"
     exit 1
@@ -14,7 +23,6 @@ fi
 # Function to decrypt a specific key from the SOPS yaml
 decrypt_secret() {
     local key=$1
-    # Use sops to decrypt and jq to extract the value
     sops -d "$SECRET_FILE" | jq -r ".$key // empty"
 }
 
