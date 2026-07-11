@@ -8,13 +8,36 @@ DOCS_ASSETS="/opt/data/docs/assets"
 
 echo "🚀 Starting Inference Stack Setup..."
 
-# 1. Verify ROCm Drivers
-if [ ! -c /dev/kfd ]; then
-    echo "❌ ERROR: AMD ROCm drivers not found (/dev/kfd missing)."
+# 1. Verify ROCm Drivers / GPU Access
+rocm_ok=false
+
+# Native Linux: check for /dev/kfd character device
+if [ -c /dev/kfd ]; then
+    rocm_ok=true
+fi
+
+# WSL2 with AMD HIP/ROCm user-space drivers: rocminfo works via HSARunner without /dev/kfd
+# Search common install locations since Windows installer may not add to PATH
+for rocminfo_path in $(find /opt/rocm* /usr/local /snap -maxdepth 4 -name "rocminfo" -type f 2>/dev/null); do
+    gpu_info=$("$rocminfo_path" 2>/dev/null | grep -i "Marketing Name.*AMD" | head -1)
+    if [ -n "$gpu_info" ]; then
+        rocm_ok=true
+        echo "✅ WSL environment detected — ROCm GPU found via HSARunner: $gpu_info"
+        break
+    fi
+done
+
+if [ "$rocm_ok" = false ]; then
+    echo "❌ ERROR: AMD ROCm drivers not found (/dev/kfd missing, rocminfo unavailable)."
     echo "Please install the ROCm kernel drivers on your host system."
     exit 1
 fi
-echo "✅ ROCm drivers detected."
+
+if [ "$rocm_ok" = true ] && [ ! -c /dev/kfd ]; then
+    : # already printed WSL message above
+elif [ "$rocm_ok" = true ]; then
+    echo "✅ ROCm drivers detected (/dev/kfd)."
+fi
 
 # 2. Provision Secrets (Zero-Visibility Pattern)
 echo "🔐 Provisioning secrets..."
