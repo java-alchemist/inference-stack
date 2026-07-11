@@ -19,7 +19,8 @@ fi
 # WSL2 with AMD HIP/ROCm user-space drivers: rocminfo works via HSARunner without /dev/kfd
 # Search common install locations since Windows installer may not add to PATH
 for rocminfo_path in $(find /opt/rocm* /usr/local /snap -maxdepth 4 -name "rocminfo" -type f 2>/dev/null); do
-    gpu_info=$("$rocminfo_path" 2>/dev/null | grep -i "Marketing Name.*AMD" | head -1)
+    # Match GPU agent specifically (Device Type: GPU), not the CPU which also says "AMD"
+    gpu_info=$("$rocminfo_path" 2>/dev/null | awk '/Agent [0-9]/{agent=""} /Marketing Name.*AMD/{gpu=1; agent=$0} /Device Type.*GPU/{if(gpu) print agent; gpu=0}' | head -1)
     if [ -n "$gpu_info" ]; then
         rocm_ok=true
         echo "✅ WSL environment detected — ROCm GPU found via HSARunner: $gpu_info"
