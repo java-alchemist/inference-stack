@@ -10,7 +10,7 @@
 
 ## Directory Structure
 
-```
+```text
 inference-stack/
 ├── .env.example           # Configuration template
 ├── docker-compose.yml     # Full stack: SGLang + ComfyUI together

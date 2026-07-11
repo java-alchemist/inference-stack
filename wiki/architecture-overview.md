@@ -12,7 +12,7 @@ The `inference-stack` repo is a **dedicated GPU inference layer** that runs alon
 
 ## Relationship to Turnstone Stack
 
-```
+```text
 ┌───────────────────────┐          ┌──────────────────────────────┐
 │   turnstone-stack     │          │      inference-stack         │
 │                       │          │                              │
