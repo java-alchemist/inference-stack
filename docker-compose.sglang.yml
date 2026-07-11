@@ -10,6 +10,7 @@ services:
       - /dev/dri:/dev/dri
     environment:
       - SERVICE_NAME=sglang
+      - HSA_OVERRIDE_GFX_VERSION=12.0.0
     entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
     command: python3 -m sglang.launch_server --model-path facebook/opt-125m --host 0.0.0.0
     volumes:
